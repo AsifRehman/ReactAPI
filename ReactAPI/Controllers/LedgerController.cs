@@ -15,7 +15,7 @@ namespace WebAPI.Controllers
     {
         private readonly IConfiguration _configuration;
         private readonly IWebHostEnvironment _env;
-        private string mainQuery = $@"SELECT g.TType, g.VocNo, g.Date, g.id, g.SrNo, g.PartyID, g.Description, g.NetDebit, g.NetCredit, p.PartyName FROM dbo.tbl_Ledger g INNER JOIN tbl_Party p ON p.PartyNameID = g.PartyID WHERE g.VocNo={g.VocNo} AND g.TType='{g.TType}' ORDER BY SrNo";
+        private string mainQuery = @"SELECT g.TType, g.VocNo, g.Date, g.id, g.SrNo, g.PartyID, p.PartyName, g.Description, g.NetDebit, g.NetCredit FROM dbo.tbl_Ledger g INNER JOIN tbl_Party p ON p.PartyNameID = g.PartyID WHERE g.VocNo=searchVocNo AND g.TType='searchTType' ORDER BY SrNo";
 
         public LedgerController(IConfiguration configuration, IWebHostEnvironment env)
         {
@@ -35,7 +35,7 @@ namespace WebAPI.Controllers
         [HttpGet("{ttype}/{vocno}")]
         public JsonResult Get(string ttype, int vocno)
         {
-            string query = mainQuery;
+            string query = mainQuery.Replace("searchVocNo", vocno.ToString()).Replace("searchTType",ttype);
 
             DataTable mTable = new DataTable();
             DataTable dTable = new DataTable();
@@ -48,7 +48,7 @@ namespace WebAPI.Controllers
             dTable.Columns.Add("id", typeof(int));
             dTable.Columns.Add("SrNo", typeof(int));
             dTable.Columns.Add("PartyID", typeof(int));
-            dTable.Columns.Add("PartyName", typeof(int));
+            dTable.Columns.Add("PartyName", typeof(string));
             dTable.Columns.Add("Description", typeof(string));
             dTable.Columns.Add("NetDebit", typeof(Int64));
             dTable.Columns.Add("NetCredit", typeof(Int64));
@@ -76,10 +76,10 @@ namespace WebAPI.Controllers
                                 myReader.GetInt32(3), //id
                                 myReader.GetInt32(4), //srno
                                 myReader.GetInt32(5), //partyid
-                                myReader.IsDBNull(6) ? null : myReader.GetString(6),//description
-                                myReader.IsDBNull(7) ? null : (Int64)myReader.GetDecimal(7),
+                                myReader.GetString(6), //partyname
+                                myReader.IsDBNull(7) ? null : myReader.GetString(7), //description
                                 myReader.IsDBNull(8) ? null : (Int64)myReader.GetDecimal(8),
-                                myReader.GetString(9)); //partyname
+                                myReader.IsDBNull(9) ? null : (Int64)myReader.GetDecimal(9));
                         }
 
                         mTable.Rows[0]["Trans"] = dTable;
@@ -131,6 +131,7 @@ namespace WebAPI.Controllers
             dTable.Columns.Add("id", typeof(int));
             dTable.Columns.Add("SrNo", typeof(int));
             dTable.Columns.Add("PartyID", typeof(int));
+            dTable.Columns.Add("PartyName", typeof(string));
             dTable.Columns.Add("Description", typeof(string));
             dTable.Columns.Add("NetDebit", typeof(Int64));
             dTable.Columns.Add("NetCredit", typeof(Int64));
@@ -169,7 +170,7 @@ namespace WebAPI.Controllers
                 {
                     recs = myCommand.ExecuteNonQuery();
                 }
-                query = mainQuery;
+                query = mainQuery.Replace("searchVocNo", g.VocNo.ToString()).Replace("searchTType", g.TType);
 
                 using (SqlCommand myCommand = new SqlCommand(query, myCon))
                 {
@@ -190,10 +191,10 @@ namespace WebAPI.Controllers
                                 myReader.GetInt32(3), //id
                                 myReader.GetInt32(4), //srno
                                 myReader.GetInt32(5), //partyid
-                                myReader.IsDBNull(6) ? null : myReader.GetString(6),//description
-                                myReader.IsDBNull(7) ? null : (Int64)myReader.GetDecimal(7),
-                                myReader.IsDBNull(8) ? null : myReader.GetDecimal(8),
-                                myReader.GetString(9)); //partyname
+                                myReader.GetString(6), //partyname
+                                myReader.IsDBNull(7) ? null : myReader.GetString(7),//description
+                                myReader.IsDBNull(8) ? null : (Int64)myReader.GetDecimal(8),
+                                myReader.IsDBNull(9) ? null : myReader.GetDecimal(9));
                         }
 
                         mTable.Rows[0]["Trans"] = dTable;
@@ -225,7 +226,7 @@ namespace WebAPI.Controllers
         [HttpPut]
         public JsonResult Put(LedgerM newG)
         {
-            string query = mainQuery;
+            string query = mainQuery.Replace("searchVocNo", newG.VocNo.ToString()).Replace("searchTType", newG.TType);
             string varSql = "";
             List<string> varSqls = new List<string>();
             string? dr = "";
@@ -258,10 +259,10 @@ namespace WebAPI.Controllers
                             od.Id = myReader.GetInt32(3); //id
                             od.SrNo = myReader.GetInt32(4); //srno
                             od.PartyId = myReader.GetInt32(5); //partyid
-                            od.Description = myReader.IsDBNull(6) ? null : myReader.GetString(6); //description
-                            od.NetDebit = myReader.IsDBNull(7) ? null : (Int64)myReader.GetDecimal(7);
-                            od.NetCredit = myReader.IsDBNull(8) ? null : (Int64)myReader.GetDecimal(8);
-                            od.PartyName = myReader.GetString(9); //partyname
+                            od.PartyName = myReader.GetString(6); //partyname
+                            od.Description = myReader.IsDBNull(7) ? null : myReader.GetString(7); //description
+                            od.NetDebit = myReader.IsDBNull(8) ? null : (Int64)myReader.GetDecimal(8);
+                            od.NetCredit = myReader.IsDBNull(9) ? null : (Int64)myReader.GetDecimal(9);
 
 
                             LedgerD check = newG.Trans.Find(x => x.Id == od.Id);
