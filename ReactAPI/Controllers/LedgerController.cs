@@ -15,6 +15,7 @@ namespace WebAPI.Controllers
     {
         private readonly IConfiguration _configuration;
         private readonly IWebHostEnvironment _env;
+        private string mainQuery = $@"SELECT g.TType, g.VocNo, g.Date, g.id, g.SrNo, g.PartyID, g.Description, g.NetDebit, g.NetCredit, p.PartyName FROM dbo.tbl_Ledger g INNER JOIN tbl_Party p ON p.PartyNameID = g.PartyID WHERE g.VocNo={g.VocNo} AND g.TType='{g.TType}' ORDER BY SrNo";
 
         public LedgerController(IConfiguration configuration, IWebHostEnvironment env)
         {
@@ -34,7 +35,7 @@ namespace WebAPI.Controllers
         [HttpGet("{ttype}/{vocno}")]
         public JsonResult Get(string ttype, int vocno)
         {
-            string query = $@"SELECT TType, VocNo, Date, id, SrNo, PartyID, Description, NetDebit, NetCredit FROM dbo.tbl_Ledger WHERE TType='{ttype}' AND VocNo={vocno}";
+            string query = mainQuery;
 
             DataTable mTable = new DataTable();
             DataTable dTable = new DataTable();
@@ -47,6 +48,7 @@ namespace WebAPI.Controllers
             dTable.Columns.Add("id", typeof(int));
             dTable.Columns.Add("SrNo", typeof(int));
             dTable.Columns.Add("PartyID", typeof(int));
+            dTable.Columns.Add("PartyName", typeof(int));
             dTable.Columns.Add("Description", typeof(string));
             dTable.Columns.Add("NetDebit", typeof(Int64));
             dTable.Columns.Add("NetCredit", typeof(Int64));
@@ -76,7 +78,8 @@ namespace WebAPI.Controllers
                                 myReader.GetInt32(5), //partyid
                                 myReader.IsDBNull(6) ? null : myReader.GetString(6),//description
                                 myReader.IsDBNull(7) ? null : (Int64)myReader.GetDecimal(7),
-                                myReader.IsDBNull(8) ? null : myReader.GetDecimal(8));
+                                myReader.IsDBNull(8) ? null : (Int64)myReader.GetDecimal(8),
+                                myReader.GetString(9)); //partyname
                         }
 
                         mTable.Rows[0]["Trans"] = dTable;
@@ -136,8 +139,8 @@ namespace WebAPI.Controllers
             string query = $@"INSERT INTO dbo.tbl_Ledger" +
                 "(TType, VocNo, Date, SrNo, PartyId, Description, NetDebit,NetCredit) VALUES";
             int i = 0;
-            string dr = "";
-            string cr = "";
+            string? dr = "";
+            string? cr = "";
             foreach (var d in g.Trans)
             {
                 i += 1; //row no
@@ -166,7 +169,7 @@ namespace WebAPI.Controllers
                 {
                     recs = myCommand.ExecuteNonQuery();
                 }
-                query = $"SELECT TType, VocNo, Date, id, SrNo, PartyID, Description, NetDebit, NetCredit FROM dbo.tbl_Ledger WHERE VocNo={g.VocNo} AND TType='{g.TType}' ORDER BY SrNo";
+                query = mainQuery;
 
                 using (SqlCommand myCommand = new SqlCommand(query, myCon))
                 {
@@ -189,7 +192,8 @@ namespace WebAPI.Controllers
                                 myReader.GetInt32(5), //partyid
                                 myReader.IsDBNull(6) ? null : myReader.GetString(6),//description
                                 myReader.IsDBNull(7) ? null : (Int64)myReader.GetDecimal(7),
-                                myReader.IsDBNull(8) ? null : myReader.GetDecimal(8));
+                                myReader.IsDBNull(8) ? null : myReader.GetDecimal(8),
+                                myReader.GetString(9)); //partyname
                         }
 
                         mTable.Rows[0]["Trans"] = dTable;
@@ -221,7 +225,7 @@ namespace WebAPI.Controllers
         [HttpPut]
         public JsonResult Put(LedgerM newG)
         {
-            string query = $@"SELECT TType, VocNo, Date, id, SrNo, PartyID, Description, NetDebit, NetCredit FROM dbo.tbl_Ledger WHERE TType='{newG.TType}' AND VocNo={newG.VocNo}";
+            string query = mainQuery;
             string varSql = "";
             List<string> varSqls = new List<string>();
             string? dr = "";
@@ -257,6 +261,8 @@ namespace WebAPI.Controllers
                             od.Description = myReader.IsDBNull(6) ? null : myReader.GetString(6); //description
                             od.NetDebit = myReader.IsDBNull(7) ? null : (Int64)myReader.GetDecimal(7);
                             od.NetCredit = myReader.IsDBNull(8) ? null : (Int64)myReader.GetDecimal(8);
+                            od.PartyName = myReader.GetString(9); //partyname
+
 
                             LedgerD check = newG.Trans.Find(x => x.Id == od.Id);
                             newG.Trans.RemoveAll(x => x.Id == od.Id);

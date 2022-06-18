@@ -14,6 +14,7 @@ namespace WebAPI.Models
         public DateTime Date { get; set; }
         public int SrNo { get; set; }
         public int PartyId { get; set; }
+        public string? PartyName { get; set; }
         public string? Description { get; set; }
         public Int64? NetDebit { get; set; }
         public Int64? NetCredit { get; set; }
@@ -31,7 +32,7 @@ namespace WebAPI.Models
         public int VocNo { get; set; }
         public DateTime Date { get; set; }
         public string TType { get; set; } = "";
-        public List<LedgerD>? Trans { get; set; }
+        public List<LedgerD> Trans { get; set; } = new List<LedgerD>();
     }
 
     public class LedgerD 
@@ -39,6 +40,7 @@ namespace WebAPI.Models
         public int Id { get; set; }
         public int SrNo { get; set; }
         public int PartyId { get; set; }
+        public string? PartyName { get; set; }
         public string? Description { get; set; }
         public Int64? NetDebit { get; set; }
         public Int64? NetCredit { get; set; }
