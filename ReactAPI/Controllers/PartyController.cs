@@ -112,7 +112,7 @@ namespace WebAPI.Controllers
             string? cr = p.Credit== null ? "NULL" : p.Credit.ToString();
 
             string query = $@"
-                    insert into dbo.Party 
+                    insert into dbo.tbl_Party 
                     (PartyNameId,PartyName, PartyTypeId, Debit,Credit)
                     values({p.PartyId},'{p.PartyName}', {p.PartyTypeId}, {dr}, {cr})";
             DataTable table = new DataTable();
@@ -131,7 +131,7 @@ namespace WebAPI.Controllers
                 }
             }
 
-            return new JsonResult("Added Successfully");
+            return new JsonResult(p);
         }
 
 
@@ -146,7 +146,7 @@ namespace WebAPI.Controllers
                     where PartyId = " + p.Credit + @" 
                     ";
             DataTable table = new DataTable();
-            string sqlDataSource = _configuration.GetConnectionString("PartyAppCon");
+            string sqlDataSource = _configuration.GetConnectionString("EmployeeAppCon");
             SqlDataReader myReader;
             using (SqlConnection myCon = new SqlConnection(sqlDataSource))
             {
@@ -170,10 +170,10 @@ namespace WebAPI.Controllers
         {
             string query = @"
                     delete from dbo.tbl_Party
-                    where PartyId = " + id + @" 
+                    where PartyNameId = " + id + @" 
                     ";
             DataTable table = new DataTable();
-            string sqlDataSource = _configuration.GetConnectionString("PartyAppCon");
+            string sqlDataSource = _configuration.GetConnectionString("EmployeeAppCon");
             SqlDataReader myReader;
             using (SqlConnection myCon = new SqlConnection(sqlDataSource))
             {

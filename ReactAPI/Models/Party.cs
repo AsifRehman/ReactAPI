@@ -10,8 +10,8 @@ namespace WebAPI.Models
     {
         public int PartyId { get; set; }
         public string PartyName { get; set; } = "";
-        public int Debit { get; set; }
-        public int Credit { get; set; }
+        public Int64? Debit { get; set; }
+        public Int64? Credit { get; set; }
         public int PartyTypeId { get; set; }
 
     }
