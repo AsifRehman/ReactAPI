@@ -10,6 +10,7 @@ using System.Data;
 using WebAPI.Models;
 using System.IO;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Cors;
 
 namespace WebAPI.Controllers
 {
@@ -78,13 +79,13 @@ namespace WebAPI.Controllers
         }
 
 
-        [HttpPost]
+        [DisableCors,HttpPost]
         public JsonResult Post(Party p)
         {
             string query = $@"
                     insert into dbo.Party 
                     (PartyNameId,PartyName, PartyTypeId, Debit,Credit)
-                    values({p.PartyNameId},'{p.PartyName}', {p.PartyTypeId}, {p.Debit}, {p.Credit})";
+                    values({p.PartyId},'{p.PartyName}', {p.PartyTypeId}, {p.Debit}, {p.Credit})";
             DataTable table = new DataTable();
             string sqlDataSource = _configuration.GetConnectionString("EmployeeAppCon");
             SqlDataReader myReader;
@@ -105,12 +106,12 @@ namespace WebAPI.Controllers
         }
 
 
-        [HttpPut]
+        [DisableCors,HttpPut]
         public JsonResult Put(Party p)
         {
             string query = @"
                     update dbo.Party set 
-                    PartyName = '" + p.PartyNameId + @"'
+                    PartyName = '" + p.PartyId + @"'
                     ,Department = '" + p.PartyName + @"'
                     ,DateOfJoining = '" + p.Debit + @"'
                     where PartyId = " + p.Credit + @" 

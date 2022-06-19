@@ -8,7 +8,7 @@ namespace WebAPI.Models
 {
     public class Party
     {
-        public int PartyNameId { get; set; }
+        public int PartyId { get; set; }
         public string PartyName { get; set; } = "";
         public int Debit { get; set; }
         public int Credit { get; set; }
