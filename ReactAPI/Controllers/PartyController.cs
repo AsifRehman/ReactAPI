@@ -51,6 +51,32 @@ namespace WebAPI.Controllers
             return new JsonResult(table);
         }
 
+        [HttpGet("{id}")]
+        public JsonResult Get(int id)
+        {
+            string query = $@"
+                    select PartyNameId as PartyId, PartyName, Debit,
+                    Credit, PartyTypeId
+                    from dbo.tbl_Party WHERE PartyNameID={id}";
+            DataTable table = new DataTable();
+            string sqlDataSource = _configuration.GetConnectionString("EmployeeAppCon");
+            SqlDataReader myReader;
+            using (SqlConnection myCon = new SqlConnection(sqlDataSource))
+            {
+                myCon.Open();
+                using (SqlCommand myCommand = new SqlCommand(query, myCon))
+                {
+                    myReader = myCommand.ExecuteReader();
+                    table.Load(myReader); ;
+
+                    myReader.Close();
+                    myCon.Close();
+                }
+            }
+
+            return new JsonResult(table);
+        }
+
         [HttpGet]
         public JsonResult Get()
         {
@@ -79,13 +105,16 @@ namespace WebAPI.Controllers
         }
 
 
-        [DisableCors,HttpPost]
+        [HttpPost]
         public JsonResult Post(Party p)
         {
+            string? dr = p.Debit == null ? "NULL" : p.Debit.ToString();
+            string? cr = p.Credit== null ? "NULL" : p.Credit.ToString();
+
             string query = $@"
                     insert into dbo.Party 
                     (PartyNameId,PartyName, PartyTypeId, Debit,Credit)
-                    values({p.PartyId},'{p.PartyName}', {p.PartyTypeId}, {p.Debit}, {p.Credit})";
+                    values({p.PartyId},'{p.PartyName}', {p.PartyTypeId}, {dr}, {cr})";
             DataTable table = new DataTable();
             string sqlDataSource = _configuration.GetConnectionString("EmployeeAppCon");
             SqlDataReader myReader;
@@ -106,7 +135,7 @@ namespace WebAPI.Controllers
         }
 
 
-        [DisableCors,HttpPut]
+        [HttpPut]
         public JsonResult Put(Party p)
         {
             string query = @"
