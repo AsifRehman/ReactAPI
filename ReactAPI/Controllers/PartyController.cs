@@ -54,7 +54,7 @@ namespace WebAPI.Controllers
         public JsonResult Get()
         {
             string query = @"
-                    select PartyNameId, PartyName, Debit,
+                    select PartyNameId as PartyId, PartyName, Debit,
                     Credit, PartyTypeId
                     from dbo.tbl_Party
                     ";
@@ -81,20 +81,12 @@ namespace WebAPI.Controllers
         [HttpPost]
         public JsonResult Post(Party p)
         {
-            string query = @"
+            string query = $@"
                     insert into dbo.Party 
-                    (PartyNameId,PartyName,Debit,Credit, PartyTypeId)
-                    values 
-                    (
-                    " + p.PartyNameId + @"
-                    ,'" + p.PartyName + @"'
-                    ," + p.Debit + @"
-                    ," + p.Credit + @"
-                    ," + p.PartyTypeId + @"
-                    )
-                    ";
+                    (PartyNameId,PartyName, PartyTypeId, Debit,Credit)
+                    values({p.PartyNameId},'{p.PartyName}', {p.PartyTypeId}, {p.Debit}, {p.Credit})";
             DataTable table = new DataTable();
-            string sqlDataSource = _configuration.GetConnectionString("PartyAppCon");
+            string sqlDataSource = _configuration.GetConnectionString("EmployeeAppCon");
             SqlDataReader myReader;
             using (SqlConnection myCon = new SqlConnection(sqlDataSource))
             {
