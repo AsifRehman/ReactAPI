@@ -11,6 +11,7 @@ using WebAPI.Models;
 using System.IO;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Cors;
+using System.Net;
 
 namespace WebAPI.Controllers
 {
@@ -32,13 +33,13 @@ namespace WebAPI.Controllers
         {
             string query = @"
                     select PartyNameId as PartyId, PartyName from dbo.tbl_Party ORDER BY PartyName";
-            DataTable table = new DataTable();
+            DataTable table = new();
             string sqlDataSource = _configuration.GetConnectionString("EmployeeAppCon");
             SqlDataReader myReader;
-            using (SqlConnection myCon = new SqlConnection(sqlDataSource))
+            using (SqlConnection myCon = new(sqlDataSource))
             {
                 myCon.Open();
-                using (SqlCommand myCommand = new SqlCommand(query, myCon))
+                using (SqlCommand myCommand = new(query, myCon))
                 {
                     myReader = myCommand.ExecuteReader();
                     table.Load(myReader); ;
@@ -58,13 +59,13 @@ namespace WebAPI.Controllers
                     select PartyNameId as PartyId, PartyName, Debit,
                     Credit, PartyTypeId
                     from dbo.tbl_Party WHERE PartyNameID={id}";
-            DataTable table = new DataTable();
+            DataTable table = new();
             string sqlDataSource = _configuration.GetConnectionString("EmployeeAppCon");
             SqlDataReader myReader;
-            using (SqlConnection myCon = new SqlConnection(sqlDataSource))
+            using (SqlConnection myCon = new(sqlDataSource))
             {
                 myCon.Open();
-                using (SqlCommand myCommand = new SqlCommand(query, myCon))
+                using (SqlCommand myCommand = new(query, myCon))
                 {
                     myReader = myCommand.ExecuteReader();
                     table.Load(myReader); ;
@@ -85,13 +86,13 @@ namespace WebAPI.Controllers
                     Credit, PartyTypeId
                     from dbo.tbl_Party
                     ";
-            DataTable table = new DataTable();
+            DataTable table = new();
             string sqlDataSource = _configuration.GetConnectionString("EmployeeAppCon");
             SqlDataReader myReader;
-            using (SqlConnection myCon = new SqlConnection(sqlDataSource))
+            using (SqlConnection myCon = new(sqlDataSource))
             {
                 myCon.Open();
-                using (SqlCommand myCommand = new SqlCommand(query, myCon))
+                using (SqlCommand myCommand = new(query, myCon))
                 {
                     myReader = myCommand.ExecuteReader();
                     table.Load(myReader); ;
@@ -115,23 +116,34 @@ namespace WebAPI.Controllers
                     insert into dbo.tbl_Party 
                     (PartyNameId,PartyName, PartyTypeId, Debit,Credit)
                     values({p.PartyId},'{p.PartyName}', {p.PartyTypeId}, {dr}, {cr})";
-            DataTable table = new DataTable();
+            DataTable table = new();
             string sqlDataSource = _configuration.GetConnectionString("EmployeeAppCon");
             SqlDataReader myReader;
-            using (SqlConnection myCon = new SqlConnection(sqlDataSource))
+            try
             {
-                myCon.Open();
-                using (SqlCommand myCommand = new SqlCommand(query, myCon))
+                using (SqlConnection myCon = new(sqlDataSource))
                 {
-                    myReader = myCommand.ExecuteReader();
-                    table.Load(myReader); ;
+                    myCon.Open();
+                    using (SqlCommand myCommand = new(query, myCon))
+                    {
+                        myReader = myCommand.ExecuteReader();
+                        table.Load(myReader); ;
 
-                    myReader.Close();
-                    myCon.Close();
+                        myReader.Close();
+                        myCon.Close();
+                    }
                 }
+                return new JsonResult(p);
+            }
+            catch (Exception ex)
+            {
+                var jsonResult = new JsonResult(ex.Message);
+                jsonResult.StatusCode = ControllerContext.HttpContext.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                return jsonResult;
             }
 
-            return new JsonResult(p);
+
+            
         }
 
 
@@ -145,13 +157,13 @@ namespace WebAPI.Controllers
                     ,DateOfJoining = '" + p.Debit + @"'
                     where PartyId = " + p.Credit + @" 
                     ";
-            DataTable table = new DataTable();
+            DataTable table = new();
             string sqlDataSource = _configuration.GetConnectionString("EmployeeAppCon");
             SqlDataReader myReader;
-            using (SqlConnection myCon = new SqlConnection(sqlDataSource))
+            using (SqlConnection myCon = new(sqlDataSource))
             {
                 myCon.Open();
-                using (SqlCommand myCommand = new SqlCommand(query, myCon))
+                using (SqlCommand myCommand = new(query, myCon))
                 {
                     myReader = myCommand.ExecuteReader();
                     table.Load(myReader); ;
@@ -172,13 +184,13 @@ namespace WebAPI.Controllers
                     delete from dbo.tbl_Party
                     where PartyNameId = " + id + @" 
                     ";
-            DataTable table = new DataTable();
+            DataTable table = new();
             string sqlDataSource = _configuration.GetConnectionString("EmployeeAppCon");
             SqlDataReader myReader;
-            using (SqlConnection myCon = new SqlConnection(sqlDataSource))
+            using (SqlConnection myCon = new(sqlDataSource))
             {
                 myCon.Open();
-                using (SqlCommand myCommand = new SqlCommand(query, myCon))
+                using (SqlCommand myCommand = new(query, myCon))
                 {
                     myReader = myCommand.ExecuteReader();
                     table.Load(myReader); ;
