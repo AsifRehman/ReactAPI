@@ -19,7 +19,7 @@ namespace WebAPI.Controllers
 
         private readonly IConfiguration _configuration;
         private readonly IWebHostEnvironment _env;
-        private string mainQuery = @"SELECT g.TType, g.VocNo, g.Date, g.id, g.SrNo, g.PartyID, p.PartyName, g.Description, g.NetDebit, g.NetCredit FROM dbo.tbl_Ledger g INNER JOIN tbl_Party p ON p.PartyNameID = g.PartyID WHERE g.VocNo=searchVocNo AND g.TType='searchTType' ORDER BY SrNo";
+        private string mainQuery = @"SELECT g.TType, g.VocNo, g.Date, g.id, g.SrNo, g.PartyID, p.PartyName, g.Description, g.NetDebit, g.NetCredit, cashAc FROM dbo.tbl_Ledger g INNER JOIN tbl_Party p ON p.PartyNameID = g.PartyID WHERE g.VocNo=searchVocNo AND g.TType='searchTType' ORDER BY SrNo";
 
         public LedgerController(IConfiguration configuration, IWebHostEnvironment env)
         {
@@ -37,6 +37,7 @@ namespace WebAPI.Controllers
             dTable.Columns.Add("Description", typeof(string));
             dTable.Columns.Add("NetDebit", typeof(Int64));
             dTable.Columns.Add("NetCredit", typeof(Int64));
+            dTable.Columns.Add("CashAc", typeof(Int64));
             dTable.Columns.Add("IsDeleted", typeof(bool));
 
         }
@@ -100,17 +101,19 @@ namespace WebAPI.Controllers
                 int i = 0;
                 string? dr = "";
                 string? cr = "";
+                string? cashAc = "";
                 foreach (var d in g.Trans)
                 {
                     i += 1; //row no
                     dr = d.NetDebit == null ? "null" : d.NetDebit.ToString();
                     cr = d.NetCredit == null ? "null" : d.NetCredit.ToString();
+                    cashAc = d.CashAc == null ? "null" : d.CashAc.ToString();
                     if (g.VocNo == 0)
                     {
                         g.VocNo = GetNewVocNo(g.TType);
 
                     }
-                    query += $"('{g.TType}',{g.VocNo},'{g.Date.ToString("yyyy-MM-dd")}',{i},{d.PartyId},'{d.Description}',{dr},{cr})";
+                    query += $"('{g.TType}',{g.VocNo},'{g.Date.ToString("yyyy-MM-dd")}',{i},{d.PartyId},'{d.Description}',{dr},{cr},{cashAc})";
                     if (g.Trans.Count != i)
                     {
                         query += ",";
@@ -228,6 +231,7 @@ namespace WebAPI.Controllers
                 var varSqls = new List<string>();
                 string? dr = "";
                 string? cr = "";
+                string? cashAc = "";
 
                 LedgerM oldM = new();
                 LedgerD oldD;
@@ -261,6 +265,7 @@ namespace WebAPI.Controllers
                                 oldD.Description = myReader.IsDBNull(7) ? null : myReader.GetString(7); //description
                                 oldD.NetDebit = myReader.IsDBNull(8) ? null : (Int64)myReader.GetDecimal(8);
                                 oldD.NetCredit = myReader.IsDBNull(9) ? null : (Int64)myReader.GetDecimal(9);
+                                oldD.CashAc = myReader.IsDBNull(10) ? null : myReader.GetInt32(10);
 
 
                                 LedgerD? newCur = newG.Trans.Find(x => x.Id == oldD.Id);
@@ -302,11 +307,11 @@ namespace WebAPI.Controllers
                             {
                                 dr = nd.NetDebit == null ? "NULL" : nd.NetDebit.ToString();
                                 cr = nd.NetCredit == null ? "NULL" : nd.NetCredit.ToString();
+                                cashAc = nd.CashAc == null ? "null" : nd.CashAc.ToString();
 
                                 varSql = @"INSERT INTO dbo.tbl_Ledger" +
-                                    " (TType, VocNo, Date, SrNo, PartyId, Description, NetDebit,NetCredit) VALUES";
-                                //                            varSql += $"('{newG.TType}',{newG.VocNo},'{newG.Date.ToString("yyyy-MM-dd")}',{nd.SrNo},{nd.PartyId},'{nd.Description}',{dr},{cr})";
-                                varSql += $"('{newG.TType}',{newG.VocNo},'{newG.Date.ToString("yyyy-MM-dd")}',{i++},{nd.PartyId},'{nd.Description}',{dr},{cr})";
+                                    " (TType, VocNo, Date, SrNo, PartyId, Description, NetDebit,NetCredit, cashAc) VALUES";
+                                varSql += $"('{newG.TType}',{newG.VocNo},'{newG.Date.ToString("yyyy-MM-dd")}',{i++},{nd.PartyId},'{nd.Description}',{dr},{cr},{cashAc})";
 
                                 varSqls.Add(varSql);
                             }

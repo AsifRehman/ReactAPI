@@ -18,6 +18,7 @@ namespace WebAPI.Models
         public string? Description { get; set; }
         public Int64? NetDebit { get; set; }
         public Int64? NetCredit { get; set; }
+        public int? CashAc { get; set; }
         public bool isDeleted { get; set; } = false;
     }
     public class PersonRow : DataRow
@@ -44,6 +45,7 @@ namespace WebAPI.Models
         public Int64? NetDebit { get; set; }
         public Int64? NetCredit { get; set; }
         public string? PartyName { get; set; }
+        public int? CashAc { get; set; }
         public bool isDeleted { get; set; } = false;
     }
 }

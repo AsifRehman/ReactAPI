@@ -28,6 +28,30 @@ namespace WebAPI.Controllers
             _env = env;
         }
 
+        [HttpGet("cashlist")]
+        public JsonResult CashList()
+        {
+            string query = @"
+                    select PartyNameId as PartyId, PartyName from dbo.tbl_Party WHERE PartyTypeID=24501 ORDER BY PartyName";
+            DataTable table = new();
+            string sqlDataSource = _configuration.GetConnectionString("EmployeeAppCon");
+            SqlDataReader myReader;
+            using (SqlConnection myCon = new(sqlDataSource))
+            {
+                myCon.Open();
+                using (SqlCommand myCommand = new(query, myCon))
+                {
+                    myReader = myCommand.ExecuteReader();
+                    table.Load(myReader); ;
+
+                    myReader.Close();
+                    myCon.Close();
+                }
+            }
+
+            return new JsonResult(table);
+        }
+
         [HttpGet("partieslist")]
         public JsonResult PartiesList()
         {

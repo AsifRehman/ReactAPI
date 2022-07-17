@@ -80,9 +80,7 @@ namespace WebAPI.Controllers
         public JsonResult Get()
         {
             string query = @"
-                    select FirmNameId as FirmId, FirmName, Debit,
-                    Credit, FirmTypeId
-                    from dbo.tbl_Firm
+                    select Id FirmId, [Name] as FirmName, 'asif.pro@gmail.com' Email, '0333993386' phone, 'st#3' Address from dbo.Firm WHERE id=1
                     ";
             DataTable table = new();
             string sqlDataSource = _configuration.GetConnectionString("EmployeeAppCon");
