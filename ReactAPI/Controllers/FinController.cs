@@ -23,6 +23,7 @@ namespace WebAPI.Controllers
             public int? PartyId { get; set; } = null;
             public DateTime SDate { get; set; }
             public DateTime EDate { get; set; }
+            public bool isTrans { get; set; } = true;
         }
 
         [HttpGet("acstat")]
@@ -74,6 +75,8 @@ namespace WebAPI.Controllers
                 sDate.Value = parameters.SDate;
                 SqlParameter eDate = new SqlParameter("eDate", SqlDbType.SmallDateTime);
                 eDate.Value = parameters.EDate;
+                SqlParameter isTrans = new SqlParameter("isTrans", SqlDbType.Bit);
+                isTrans.Value = parameters.isTrans;
 
                 DataSet ds = s.GetDatasetByCommand("Trial", new SqlParameter[] { sDate, eDate });
 
