@@ -19,12 +19,13 @@ namespace WebAPI.Controllers
 
         private readonly IConfiguration _configuration;
         private readonly IWebHostEnvironment _env;
-        private string mainQuery = @"SELECT g.TType, g.VocNo, g.Date, g.id, g.SrNo, g.PartyID, p.PartyName, g.Description, g.NetDebit, g.NetCredit, cashAc FROM dbo.tbl_Ledger g INNER JOIN tbl_Party p ON p.PartyNameID = g.PartyID WHERE g.VocNo=searchVocNo AND g.TType='searchTType' ORDER BY SrNo";
+        private string mainQuery = @"SELECT g.cashAc, g.TType, g.VocNo, g.Date, g.id, g.SrNo, g.PartyID, p.PartyName, g.Description, g.NetDebit, g.NetCredit FROM dbo.tbl_Ledger g INNER JOIN tbl_Party p ON p.PartyNameID = g.PartyID WHERE g.VocNo=searchVocNo AND g.TType='searchTType' ORDER BY SrNo";
 
         public LedgerController(IConfiguration configuration, IWebHostEnvironment env)
         {
             _configuration = configuration;
             _env = env;
+            mTable.Columns.Add("CashAc", typeof(Int64));
             mTable.Columns.Add("TType", typeof(string));
             mTable.Columns.Add("VocNo", typeof(int));
             mTable.Columns.Add("Date", typeof(DateTime));
@@ -37,7 +38,6 @@ namespace WebAPI.Controllers
             dTable.Columns.Add("Description", typeof(string));
             dTable.Columns.Add("NetDebit", typeof(Int64));
             dTable.Columns.Add("NetCredit", typeof(Int64));
-            dTable.Columns.Add("CashAc", typeof(Int64));
             dTable.Columns.Add("IsDeleted", typeof(bool));
 
         }
@@ -51,7 +51,6 @@ namespace WebAPI.Controllers
             m2.VocNo = 1;
             return m1.Equals(m2);
         }
-
         [HttpGet("{ttype}/{vocno}")]
         public JsonResult Get(string ttype, int vocno)
         {
@@ -98,23 +97,23 @@ namespace WebAPI.Controllers
             try
             {
                 string query = $@"INSERT INTO dbo.tbl_Ledger" +
-                    "(TType, VocNo, Date, SrNo, PartyId, Description, NetDebit,NetCredit) VALUES";
+                    "(CashAc, TType, VocNo, Date, SrNo, PartyId, Description, NetDebit,NetCredit) VALUES";
                 int i = 0;
                 string? dr = "";
                 string? cr = "";
                 string? cashAc = "";
+                cashAc = g.CashAc == null ? "null" : g.CashAc.ToString();
                 foreach (var d in g.Trans)
                 {
                     i += 1; //row no
                     dr = d.NetDebit == null ? "null" : d.NetDebit.ToString();
                     cr = d.NetCredit == null ? "null" : d.NetCredit.ToString();
-                    cashAc = d.CashAc == null ? "null" : d.CashAc.ToString();
                     if (g.VocNo == 0)
                     {
                         g.VocNo = GetNewVocNo(g.TType);
 
                     }
-                    query += $"('{g.TType}',{g.VocNo},'{g.Date.ToString("yyyy-MM-dd")}',{i},{d.PartyId},'{d.Description}',{dr},{cr},{cashAc})";
+                    query += $"({cashAc},'{g.TType}',{g.VocNo},'{g.Date.ToString("yyyy-MM-dd")}',{i},{d.PartyId},'{d.Description}',{dr},{cr})";
                     if (g.Trans.Count != i)
                     {
                         query += ",";
@@ -189,18 +188,19 @@ namespace WebAPI.Controllers
                             if (mTable.Rows.Count == 0)
                             {
                                 mTable.Rows.Add(
-                                    myReader.GetString(0), //ttype
-                                    myReader.GetInt32(1), //vocno
-                                    myReader.GetDateTime(2)); //Date
+                                    myReader.IsDBNull(0) ? null : (Int64)myReader.GetInt32(0), //cashAc
+                                    myReader.GetString(1), //ttype
+                                    myReader.GetInt32(2), //vocno
+                                    myReader.GetDateTime(3)); //Date
                             }
                             dTable.Rows.Add(
-                                myReader.GetInt32(3), //id
-                                myReader.GetInt32(4), //srno
-                                myReader.GetInt32(5), //partyid
-                                myReader.GetString(6), //partyname
-                                myReader.IsDBNull(7) ? null : myReader.GetString(7), //description
-                                myReader.IsDBNull(8) ? null : (Int64)myReader.GetDecimal(8),
+                                myReader.GetInt32(4), //id
+                                myReader.GetInt32(5), //srno
+                                myReader.GetInt32(6), //partyid
+                                myReader.GetString(7), //partyname
+                                myReader.IsDBNull(8) ? null : myReader.GetString(8), //description
                                 myReader.IsDBNull(9) ? null : (Int64)myReader.GetDecimal(9),
+                                myReader.IsDBNull(10) ? null : (Int64)myReader.GetDecimal(10),
                                 false);
                         }
 
@@ -254,19 +254,19 @@ namespace WebAPI.Controllers
                                 oldD = new LedgerD();
                                 if (oldM.VocNo == 0)
                                 {
-                                    oldM.TType = myReader.GetString(0);
-                                    oldM.VocNo = myReader.GetInt32(1);
-                                    oldM.Date = myReader.GetDateTime(2);
+                                    oldM.CashAc = myReader.IsDBNull(0) ? null : myReader.GetInt32(0);
+                                    oldM.TType = myReader.GetString(1);
+                                    oldM.VocNo = myReader.GetInt32(2);
+                                    oldM.Date = myReader.GetDateTime(3);
                                 }
 
-                                oldD.Id = myReader.GetInt32(3); //id
-                                oldD.SrNo = myReader.GetInt32(4); //srno
-                                oldD.PartyId = myReader.GetInt32(5); //partyid
-                                oldD.PartyName = myReader.GetString(6); //partyname
-                                oldD.Description = myReader.IsDBNull(7) ? null : myReader.GetString(7); //description
-                                oldD.NetDebit = myReader.IsDBNull(8) ? null : (Int64)myReader.GetDecimal(8);
-                                oldD.NetCredit = myReader.IsDBNull(9) ? null : (Int64)myReader.GetDecimal(9);
-                                oldD.CashAc = myReader.IsDBNull(10) ? null : myReader.GetInt32(10);
+                                oldD.Id = myReader.GetInt32(4); //id
+                                oldD.SrNo = myReader.GetInt32(5); //srno
+                                oldD.PartyId = myReader.GetInt32(6); //partyid
+                                oldD.PartyName = myReader.GetString(7); //partyname
+                                oldD.Description = myReader.IsDBNull(8) ? null : myReader.GetString(8); //description
+                                oldD.NetDebit = myReader.IsDBNull(9) ? null : (Int64)myReader.GetDecimal(9);
+                                oldD.NetCredit = myReader.IsDBNull(10) ? null : (Int64)myReader.GetDecimal(10);
 
 
                                 LedgerD? newCur = newG.Trans.Find(x => x.Id == oldD.Id);
@@ -281,6 +281,7 @@ namespace WebAPI.Controllers
                                     }
                                     else
                                     {
+                                        if (newG.CashAc != oldM.CashAc) varSql += $"CashAc={newG.CashAc},";
                                         if (newG.Date != oldM.Date) varSql += $"[Date]='{newG.Date.ToString("yyyy-MM-dd")}',";
                                         if (newCur.SrNo != i) varSql += $"SrNo={i++},";
                                         //                                    if (newCur.SrNo != oldD.SrNo) varSql += $"SrNo={newCur.SrNo},";
@@ -308,7 +309,7 @@ namespace WebAPI.Controllers
                             {
                                 dr = nd.NetDebit == null ? "NULL" : nd.NetDebit.ToString();
                                 cr = nd.NetCredit == null ? "NULL" : nd.NetCredit.ToString();
-                                cashAc = nd.CashAc == null ? "null" : nd.CashAc.ToString();
+                                cashAc = newG.CashAc == null ? "null" : newG.CashAc.ToString();
 
                                 varSql = @"INSERT INTO dbo.tbl_Ledger" +
                                     " (TType, VocNo, Date, SrNo, PartyId, Description, NetDebit,NetCredit, cashAc) VALUES";
@@ -354,7 +355,7 @@ namespace WebAPI.Controllers
                 return jsonResult;
             }
 
-            
+
         }
 
 
