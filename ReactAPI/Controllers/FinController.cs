@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Data.SqlClient;
 using System.Data;
+using WebAPI.Helpers;
 
 namespace WebAPI.Controllers
 {
@@ -16,6 +17,28 @@ namespace WebAPI.Controllers
             _configuration = configuration;
             _env = env;
         }
+        [HttpGet("test")]
+        public JsonResult Test()
+        {
+            DataTable table1 = new();
+            table1.Columns.Add("a", typeof(int));
+            table1.Columns.Add("b", typeof(string));
+
+            table1.Rows.Add(1,"abc");
+
+            DataTable table2 = new();
+            table2.TableName = "t";
+            table2.Columns.Add("a", typeof(int));
+            table2.Columns.Add("b", typeof(string));
+
+            table2.Rows.Add(1, "abc");
+
+            DataSet ds = new();
+            ds.Tables.AddRange(new DataTable[] { table1, table2 });
+            return new JsonResult(ds);
+
+        }
+
         public class QueryParameters
         {
             public int PartyId { get; set; }
@@ -24,7 +47,7 @@ namespace WebAPI.Controllers
         }
 
         [HttpGet("acstat")]
-        public JsonResult AcStat([FromQuery] QueryParameters parameters)
+        public async Task<JsonResult> AcStat([FromQuery] QueryParameters parameters)
         {
             string query = @$"
                     SELECT VocNo,SrNo ,Date ,PartyID ,TType ,Description ,NetCredit ,NetDebit ,BAL ,PartyRef ,pVocNo FROM AcStat
@@ -32,6 +55,7 @@ namespace WebAPI.Controllers
                     ORDER BY Date
                     ";
             DataTable table = new();
+            table.TableName= "data";
             string sqlDataSource = _configuration.GetConnectionString("EmployeeAppCon");
             SqlDataReader myReader;
             using (SqlConnection myCon = new(sqlDataSource))
@@ -39,15 +63,25 @@ namespace WebAPI.Controllers
                 myCon.Open();
                 using (SqlCommand myCommand = new(query, myCon))
                 {
-                    myReader = myCommand.ExecuteReader();
+                    myReader = await myCommand.ExecuteReaderAsync();
                     table.Load(myReader); ;
 
                     myReader.Close();
                     myCon.Close();
                 }
             }
+            DataTable opening= new();
+            opening.TableName = "opening";
+            opening.Columns.Add("opening", typeof(Int32));
 
-            return new JsonResult(table);
+            SqlHelper h = new(_configuration);
+            Int32 opVal = await h.GetExecuteScalarByStr($"SELECT ISNULL(Sum(Bal),0) Bal FROM acstat WHERE PartyID={parameters.PartyId} AND Date<'{parameters.SDate.ToString("yyyy-MM-dd")}'");
+            opening.Rows.Add(opVal);
+
+            DataSet ds= new();
+            ds.Tables.AddRange(new DataTable[] {opening, table});
+
+            return new JsonResult(ds);
         }
     }
 }

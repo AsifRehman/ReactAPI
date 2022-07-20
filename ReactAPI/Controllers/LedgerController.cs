@@ -51,6 +51,7 @@ namespace WebAPI.Controllers
             m2.VocNo = 1;
             return m1.Equals(m2);
         }
+
         [HttpGet("{ttype}/{vocno}")]
         public JsonResult Get(string ttype, int vocno)
         {
