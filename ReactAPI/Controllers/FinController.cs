@@ -17,30 +17,6 @@ namespace WebAPI.Controllers
             _configuration = configuration;
             _env = env;
         }
-        [HttpGet("trial")]
-        public JsonResult Trial([FromQuery] QueryParameters parameters)
-        {
-            try
-            {
-
-                SqlHelper s = new(_configuration);
-                SqlParameter sDate = new SqlParameter("sDate", SqlDbType.SmallDateTime);
-                sDate.Value = parameters.SDate;
-                SqlParameter eDate = new SqlParameter("eDate", SqlDbType.SmallDateTime);
-                eDate.Value = parameters.EDate;
-
-                DataSet ds = s.GetDatasetByCommand("Trial", new SqlParameter[] { sDate, eDate });
-
-                return new JsonResult(ds);
-            }
-            catch (Exception ex)
-            {
-
-                return new JsonResult(ex.Message);
-            }
-
-
-        }
 
         public class QueryParameters
         {
@@ -88,41 +64,29 @@ namespace WebAPI.Controllers
         }
 
         [HttpGet("trial")]
-        public async Task<JsonResult> Trial([FromQuery] QueryParameters parameters)
+        public JsonResult Trial([FromQuery] QueryParameters parameters)
         {
-            string query = @$"
-                    SELECT VocNo,SrNo ,Date ,PartyID ,TType ,Description ,NetCredit ,NetDebit ,BAL ,PartyRef ,pVocNo FROM AcStat
-                    WHERE PartyID={parameters.PartyId} AND (Date Between '{parameters.SDate.ToString("yyyy-MM-dd")}' AND '{parameters.EDate.ToString("yyyy-MM-dd")}')
-                    ORDER BY Date
-                    ";
-            DataTable table = new();
-            table.TableName = "data";
-            string sqlDataSource = _configuration.GetConnectionString("EmployeeAppCon");
-            SqlDataReader myReader;
-            using (SqlConnection myCon = new(sqlDataSource))
+            try
             {
-                myCon.Open();
-                using (SqlCommand myCommand = new(query, myCon))
-                {
-                    myReader = await myCommand.ExecuteReaderAsync();
-                    table.Load(myReader); ;
 
-                    myReader.Close();
-                    myCon.Close();
-                }
+                SqlHelper s = new(_configuration);
+                SqlParameter sDate = new SqlParameter("sDate", SqlDbType.SmallDateTime);
+                sDate.Value = parameters.SDate;
+                SqlParameter eDate = new SqlParameter("eDate", SqlDbType.SmallDateTime);
+                eDate.Value = parameters.EDate;
+
+                DataSet ds = s.GetDatasetByCommand("Trial", new SqlParameter[] { sDate, eDate });
+
+                return new JsonResult(ds);
             }
-            DataTable opening = new();
-            opening.TableName = "opening";
-            opening.Columns.Add("opbal", typeof(Int32));
+            catch (Exception ex)
+            {
 
-            SqlHelper h = new(_configuration);
-            Int32 opVal = await h.GetExecuteScalarByStr($"SELECT ISNULL(Sum(Bal),0) Bal FROM acstat WHERE PartyID={parameters.PartyId} AND Date<'{parameters.SDate.ToString("yyyy-MM-dd")}'");
-            opening.Rows.Add(opVal);
+                return new JsonResult(ex.Message);
+            }
 
-            DataSet ds = new();
-            ds.Tables.AddRange(new DataTable[] { opening, table });
 
-            return new JsonResult(ds);
         }
+
     }
 }
