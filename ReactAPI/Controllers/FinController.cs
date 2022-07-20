@@ -72,7 +72,7 @@ namespace WebAPI.Controllers
             }
             DataTable opening= new();
             opening.TableName = "opening";
-            opening.Columns.Add("opening", typeof(Int32));
+            opening.Columns.Add("opbal", typeof(Int32));
 
             SqlHelper h = new(_configuration);
             Int32 opVal = await h.GetExecuteScalarByStr($"SELECT ISNULL(Sum(Bal),0) Bal FROM acstat WHERE PartyID={parameters.PartyId} AND Date<'{parameters.SDate.ToString("yyyy-MM-dd")}'");
