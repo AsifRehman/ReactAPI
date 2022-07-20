@@ -155,19 +155,23 @@ namespace WebAPI.Helpers
             }
         }
 
-        public DataSet GetDatasetByCommand(string Command)
+        public DataSet GetDatasetByCommand(string Command, SqlParameter[]? parameters = null)
         {
             try
             {
                 mobj_SqlCommand.CommandText = Command;
                 mobj_SqlCommand.CommandTimeout = mint_CommandTimeout;
                 mobj_SqlCommand.CommandType = CommandType.StoredProcedure;
-
+                if (parameters != null)
+                {
+                    mobj_SqlCommand.Parameters.AddRange(parameters);
+                }
                 OpenConnection();
 
                 SqlDataAdapter adpt = new SqlDataAdapter(mobj_SqlCommand);
                 DataSet ds = new DataSet();
                 adpt.Fill(ds);
+                ds.Tables[0].TableName = "data";
                 return ds;
             }
             catch (Exception ex)
