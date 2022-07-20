@@ -78,7 +78,7 @@ namespace WebAPI.Controllers
                 SqlParameter isTrans = new SqlParameter("isTrans", SqlDbType.Bit);
                 isTrans.Value = parameters.isTrans;
 
-                DataSet ds = s.GetDatasetByCommand("Trial", new SqlParameter[] { sDate, eDate });
+                DataSet ds = s.GetDatasetByCommand("Trial", new SqlParameter[] { sDate, eDate, isTrans });
 
                 return new JsonResult(ds);
             }
