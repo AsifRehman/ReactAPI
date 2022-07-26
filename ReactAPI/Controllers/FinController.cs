@@ -79,10 +79,11 @@ namespace WebAPI.Controllers
                 isTrans.Value = parameters.isTrans;
 
                 DataSet ds = s.GetDatasetByCommand("Trial", new SqlParameter[] { sDate, eDate, isTrans });
-                ds.Tables[1].TableName = "L1";
-                ds.Tables[2].TableName = "L2";
-                ds.Tables[3].TableName = "L3";
-                ds.Tables[4].TableName = "L4";
+                ds.Tables[0].TableName = "L1";
+                ds.Tables[1].TableName = "L2";
+                ds.Tables[2].TableName = "L3";
+                ds.Tables[3].TableName = "L4";
+                ds.Tables[4].TableName = "L5";
                 return new JsonResult(ds);
             }
             catch (Exception ex)
