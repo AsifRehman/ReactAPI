@@ -16,25 +16,11 @@ namespace WebAPI.Helpers
         private SqlCommand mobj_SqlCommand;
         private int mint_CommandTimeout = 30;
 
-        private readonly IConfiguration _configuration;
-        private readonly IWebHostEnvironment _env;
-
-        public enum ExpectedType
-        {
-
-            StringType = 0,
-            NumberType = 1,
-            DateType = 2,
-            BooleanType = 3,
-            ImageType = 4
-        }
-
-        public SqlHelper(IConfiguration _configuration)
+        public SqlHelper(IConfiguration configuration)
         {
             try
             {
-
-                mstr_ConnectionString =_configuration.GetConnectionString("EmployeeAppCon");
+                mstr_ConnectionString = configuration.GetConnectionString("EmployeeAppCon");
                 mobj_SqlConnection = new SqlConnection(mstr_ConnectionString);
                 mobj_SqlCommand = new SqlCommand();
                 mobj_SqlCommand.CommandTimeout = mint_CommandTimeout;
@@ -101,10 +87,10 @@ namespace WebAPI.Helpers
                 identity = mobj_SqlCommand.ExecuteScalar();
                 CloseConnection();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 CloseConnection();
-                throw ex;
+                throw;
             }
             return Convert.ToInt32(identity);
         }
@@ -113,7 +99,7 @@ namespace WebAPI.Helpers
         {
 
 
-            object identity = 0;
+            object? identity;
             try
             {
                 SqlCommand cmd = new SqlCommand(sql);
@@ -125,10 +111,10 @@ namespace WebAPI.Helpers
                 identity = await cmd.ExecuteScalarAsync();
                 //CloseConnection();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 CloseConnection();
-                throw ex;
+                throw;
             }
             return Convert.ToInt32(identity);
         }
@@ -148,10 +134,10 @@ namespace WebAPI.Helpers
 
                 CloseConnection();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 CloseConnection();
-                throw ex;
+                throw;
             }
         }
 
@@ -174,9 +160,9 @@ namespace WebAPI.Helpers
                 ds.Tables[0].TableName = "data";
                 return ds;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
             finally
             {
@@ -192,10 +178,10 @@ namespace WebAPI.Helpers
                 SqlCommand myCommand = new SqlCommand(strSQL, mobj_SqlConnection);
                 return await myCommand.ExecuteReaderAsync();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 CloseConnection();
-                throw ex;
+                throw;
             }
             finally
             {
@@ -205,7 +191,7 @@ namespace WebAPI.Helpers
 
         public SqlDataReader GetReaderByCmd(string Command)
         {
-            SqlDataReader objSqlDataReader = null;
+            SqlDataReader objSqlDataReader;
             try
             {
                 mobj_SqlCommand.CommandText = Command;
@@ -218,49 +204,12 @@ namespace WebAPI.Helpers
                 objSqlDataReader = mobj_SqlCommand.ExecuteReader();
                 return objSqlDataReader;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 CloseConnection();
-                throw ex;
+                throw;
             }
 
-        }
-
-        public void AddParameterToSQLCommand(string ParameterName, SqlDbType ParameterType)
-        {
-            try
-            {
-                mobj_SqlCommand.Parameters.Add(new SqlParameter(ParameterName, ParameterType));
-            }
-
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-        }
-        public void AddParameterToSQLCommand(string ParameterName, SqlDbType ParameterType, int ParameterSize)
-        {
-            try
-            {
-                mobj_SqlCommand.Parameters.Add(new SqlParameter(ParameterName, ParameterType, ParameterSize));
-            }
-
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-        }
-        public void SetSQLCommandParameterValue(string ParameterName, object Value)
-        {
-            try
-            {
-                mobj_SqlCommand.Parameters[ParameterName].Value = Value;
-            }
-
-            catch (Exception ex)
-            {
-                throw ex;
-            }
         }
     }
 }

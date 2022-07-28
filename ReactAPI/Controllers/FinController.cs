@@ -11,11 +11,13 @@ namespace WebAPI.Controllers
     {
         private readonly IConfiguration _configuration;
         private readonly IWebHostEnvironment _env;
+        readonly SqlHelper h;
 
         public FinController(IConfiguration configuration, IWebHostEnvironment env)
         {
             _configuration = configuration;
             _env = env;
+            h = new(_configuration);
         }
 
         public class QueryParameters
@@ -34,29 +36,21 @@ namespace WebAPI.Controllers
                     WHERE PartyID={parameters.PartyId} AND (Date Between '{parameters.SDate.ToString("yyyy-MM-dd")}' AND '{parameters.EDate.ToString("yyyy-MM-dd")}')
                     ORDER BY Date
                     ";
+
+            /*----Data------------------------------------------------------------------------------------------------------------------------*/
             DataTable table = new();
             table.TableName = "data";
-            string sqlDataSource = _configuration.GetConnectionString("EmployeeAppCon");
-            SqlDataReader myReader;
-            using (SqlConnection myCon = new(sqlDataSource))
-            {
-                myCon.Open();
-                using (SqlCommand myCommand = new(query, myCon))
-                {
-                    myReader = await myCommand.ExecuteReaderAsync();
-                    table.Load(myReader); ;
+            table.Load(await h.GetReaderBySQL(query));
+            /*End Data------------------------------------------------------------------------------------------------------------------------*/
 
-                    myReader.Close();
-                    myCon.Close();
-                }
-            }
+            /*----Opening---------------------------------------------------------------------------------------------------------------------*/
+            query = $"SELECT ISNULL(Sum(Bal),0) Bal FROM acstat WHERE PartyID={parameters.PartyId} AND Date<'{parameters.SDate.ToString("yyyy-MM-dd")}'";
             DataTable opening = new();
             opening.TableName = "opening";
             opening.Columns.Add("opbal", typeof(Int32));
-
-            SqlHelper h = new(_configuration);
-            Int32 opVal = await h.GetExecuteScalarByStr($"SELECT ISNULL(Sum(Bal),0) Bal FROM acstat WHERE PartyID={parameters.PartyId} AND Date<'{parameters.SDate.ToString("yyyy-MM-dd")}'");
+            Int32 opVal = await h.GetExecuteScalarByStr(query);
             opening.Rows.Add(opVal);
+            /*End Opening---------------------------------------------------------------------------------------------------------------------*/
 
             DataSet ds = new();
             ds.Tables.AddRange(new DataTable[] { opening, table });
@@ -70,7 +64,6 @@ namespace WebAPI.Controllers
             try
             {
 
-                SqlHelper s = new(_configuration);
                 SqlParameter sDate = new SqlParameter("sDate", SqlDbType.SmallDateTime);
                 sDate.Value = parameters.SDate;
                 SqlParameter eDate = new SqlParameter("eDate", SqlDbType.SmallDateTime);
@@ -78,7 +71,7 @@ namespace WebAPI.Controllers
                 SqlParameter isTrans = new SqlParameter("isTrans", SqlDbType.Bit);
                 isTrans.Value = parameters.isTrans;
 
-                DataSet ds = s.GetDatasetByCommand("Trial", new SqlParameter[] { sDate, eDate, isTrans });
+                DataSet ds = h.GetDatasetByCommand("Trial", new SqlParameter[] { sDate, eDate, isTrans });
                 ds.Tables[0].TableName = "L1";
                 ds.Tables[1].TableName = "L2";
                 ds.Tables[2].TableName = "L3";

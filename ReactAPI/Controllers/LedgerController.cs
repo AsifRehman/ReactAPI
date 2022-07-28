@@ -7,6 +7,7 @@ using WebAPI.Models;
 using Microsoft.AspNetCore.Hosting;
 using System.Collections.Generic;
 using System.Net;
+using WebAPI.Helpers;
 
 namespace WebAPI.Controllers
 {
@@ -18,13 +19,14 @@ namespace WebAPI.Controllers
         DataTable dTable = new();
 
         private readonly IConfiguration _configuration;
-        private readonly IWebHostEnvironment _env;
+        private readonly SqlHelper h;
+
         private string mainQuery = @"SELECT g.cashAc, g.TType, g.VocNo, g.Date, g.id, g.SrNo, g.PartyID, p.PartyName, g.Description, g.NetDebit, g.NetCredit FROM dbo.tbl_Ledger g INNER JOIN tbl_Party p ON p.PartyNameID = g.PartyID WHERE g.VocNo=searchVocNo AND g.TType='searchTType' ORDER BY SrNo";
 
-        public LedgerController(IConfiguration configuration, IWebHostEnvironment env)
+        public LedgerController(IConfiguration configuration)
         {
+            h = new(configuration);
             _configuration = configuration;
-            _env = env;
             mTable.Columns.Add("CashAc", typeof(Int64));
             mTable.Columns.Add("TType", typeof(string));
             mTable.Columns.Add("VocNo", typeof(int));
@@ -42,50 +44,26 @@ namespace WebAPI.Controllers
 
         }
 
-        [HttpGet("test")]
-        public bool Test()
-        {
-            LedgerM m1 = new();
-            LedgerM m2 = m1;
-            m1.VocNo = 1;
-            m2.VocNo = 1;
-            return m1.Equals(m2);
-        }
         [HttpGet("{ttype}/{vocno}")]
-        public JsonResult Get(string ttype, int vocno)
+        public async Task<JsonResult> Get(string ttype, int vocno)
         {
-            GetData(ttype, vocno);
+            await GetData(ttype, vocno);
             return new JsonResult(mTable);
         }
 
         [HttpGet]
-        public JsonResult Get()
+        public async Task<JsonResult> Get()
         {
             string query = @"SELECT TOP 10 id, VocNo, SrNo, Date, Description, NetDebit, NetCredit FROM dbo.tbl_Ledger";
 
             DataTable mTable = new();
-            DataTable dTable = new();
-            string sqlDataSource = _configuration.GetConnectionString("EmployeeAppCon");
-            SqlDataReader myReader;
-            using (SqlConnection myCon = new(sqlDataSource))
-            {
-                myCon.Open();
-                using (SqlCommand myCommand = new(query, myCon))
-                {
-                    myReader = myCommand.ExecuteReader();
-                    mTable.Load(myReader); ;
-
-                    myReader.Close();
-                    myCon.Close();
-                }
-            }
-
+            mTable.Load(await h.GetReaderBySQL(query));
             return new JsonResult(mTable);
         }
 
 
         [HttpPost]
-        public JsonResult Post(LedgerM g)
+        public async Task<JsonResult> Post(LedgerM g)
         {
             if (g.VocNo > 0)
             {
@@ -110,7 +88,7 @@ namespace WebAPI.Controllers
                     cr = d.NetCredit == null ? "null" : d.NetCredit.ToString();
                     if (g.VocNo == 0)
                     {
-                        g.VocNo = GetNewVocNo(g.TType);
+                        g.VocNo = await GetNewVocNo(g.TType);
 
                     }
                     query += $"({cashAc},'{g.TType}',{g.VocNo},'{g.Date.ToString("yyyy-MM-dd")}',{i},{d.PartyId},'{d.Description}',{dr},{cr})";
@@ -140,7 +118,7 @@ namespace WebAPI.Controllers
                         myCon.Close();
                     }
                 }
-                mTable = GetData(g.TType, g.VocNo);
+                mTable = await GetData(g.TType, g.VocNo);
                 return new JsonResult(mTable);
             }
             catch (Exception ex)
@@ -153,62 +131,43 @@ namespace WebAPI.Controllers
 
         }
         #region Methods
-        private int GetNewVocNo(string v)
+        private async Task<int> GetNewVocNo(string v)
         {
-            string sqlDataSource = _configuration.GetConnectionString("EmployeeAppCon");
-            using (SqlConnection myCon = new(sqlDataSource))
-            {
-                string query = $"SELECT ISNULL(MAX(VocNo),0)+1 FROM tbl_Ledger WHERE TType='{v}'";
-                myCon.Open();
-                using (SqlCommand myCommand = new(query, myCon))
-                {
-                    int i = (int)myCommand.ExecuteScalar();
-                    myCon.Close();
-                    return i;
-                }
-            }
+            string query = $"SELECT ISNULL(MAX(VocNo),0)+1 FROM tbl_Ledger WHERE TType='{v}'";
+            int i = await h.GetExecuteScalarByStr(v);
+            return i;
         }
 
-        private DataTable GetData(string ttype, int vocno)
+        private async Task<DataTable> GetData(string ttype, int vocno)
         {
             string query = mainQuery.Replace("searchVocNo", vocno.ToString()).Replace("searchTType", ttype);
 
-            string sqlDataSource = _configuration.GetConnectionString("EmployeeAppCon");
             SqlDataReader myReader;
-            using (SqlConnection myCon = new(sqlDataSource))
+            myReader = await h.GetReaderBySQL(query);
+            if (myReader.HasRows)
             {
-                myCon.Open();
-                using (SqlCommand myCommand = new(query, myCon))
+                while (myReader.Read())
                 {
-                    myReader = myCommand.ExecuteReader();
-                    if (myReader.HasRows)
+                    if (mTable.Rows.Count == 0)
                     {
-                        while (myReader.Read())
-                        {
-                            if (mTable.Rows.Count == 0)
-                            {
-                                mTable.Rows.Add(
-                                    myReader.IsDBNull(0) ? null : (Int64)myReader.GetInt32(0), //cashAc
-                                    myReader.GetString(1), //ttype
-                                    myReader.GetInt32(2), //vocno
-                                    myReader.GetDateTime(3)); //Date
-                            }
-                            dTable.Rows.Add(
-                                myReader.GetInt32(4), //id
-                                myReader.GetInt32(5), //srno
-                                myReader.GetInt32(6), //partyid
-                                myReader.GetString(7), //partyname
-                                myReader.IsDBNull(8) ? null : myReader.GetString(8), //description
-                                myReader.IsDBNull(9) ? null : (Int64)myReader.GetDecimal(9),
-                                myReader.IsDBNull(10) ? null : (Int64)myReader.GetDecimal(10),
-                                false);
-                        }
-
-                        mTable.Rows[0]["Trans"] = dTable;
+                        mTable.Rows.Add(
+                            myReader.IsDBNull(0) ? null : (Int64)myReader.GetInt32(0), //cashAc
+                            myReader.GetString(1), //ttype
+                            myReader.GetInt32(2), //vocno
+                            myReader.GetDateTime(3)); //Date
                     }
-                    myReader.Close();
-                    myCon.Close();
+                    dTable.Rows.Add(
+                        myReader.GetInt32(4), //id
+                        myReader.GetInt32(5), //srno
+                        myReader.GetInt32(6), //partyid
+                        myReader.GetString(7), //partyname
+                        myReader.IsDBNull(8) ? null : myReader.GetString(8), //description
+                        myReader.IsDBNull(9) ? null : (Int64)myReader.GetDecimal(9),
+                        myReader.IsDBNull(10) ? null : (Int64)myReader.GetDecimal(10),
+                        false);
                 }
+
+                mTable.Rows[0]["Trans"] = dTable;
             }
 
             return mTable;
@@ -216,7 +175,7 @@ namespace WebAPI.Controllers
         #endregion
 
         [HttpPut]
-        public JsonResult Put(LedgerM newG)
+        public async Task<JsonResult> Put(LedgerM newG)
         {
             if (newG.VocNo == 0)
             {
@@ -237,94 +196,86 @@ namespace WebAPI.Controllers
                 LedgerM oldM = new();
                 LedgerD oldD;
 
-                string sqlDataSource = _configuration.GetConnectionString("EmployeeAppCon");
                 SqlDataReader myReader;
-                using (SqlConnection myCon = new(sqlDataSource))
+                int i = 1;
+                myReader = await h.GetReaderBySQL(query);
+                if (myReader.HasRows)
                 {
-                    myCon.Open();
-                    int i = 1;
-                    using (SqlCommand myCommand = new(query, myCon))
+                    while (myReader.Read())
                     {
-                        myReader = myCommand.ExecuteReader();
-                        if (myReader.HasRows)
+                        varSql = "";
+                        oldD = new LedgerD();
+                        if (oldM.VocNo == 0)
                         {
-                            while (myReader.Read())
-                            {
-                                varSql = "";
-                                oldD = new LedgerD();
-                                if (oldM.VocNo == 0)
-                                {
-                                    oldM.CashAc = myReader.IsDBNull(0) ? null : myReader.GetInt32(0);
-                                    oldM.TType = myReader.GetString(1);
-                                    oldM.VocNo = myReader.GetInt32(2);
-                                    oldM.Date = myReader.GetDateTime(3);
-                                }
-
-                                oldD.Id = myReader.GetInt32(4); //id
-                                oldD.SrNo = myReader.GetInt32(5); //srno
-                                oldD.PartyId = myReader.GetInt32(6); //partyid
-                                oldD.PartyName = myReader.GetString(7); //partyname
-                                oldD.Description = myReader.IsDBNull(8) ? null : myReader.GetString(8); //description
-                                oldD.NetDebit = myReader.IsDBNull(9) ? null : (Int64)myReader.GetDecimal(9);
-                                oldD.NetCredit = myReader.IsDBNull(10) ? null : (Int64)myReader.GetDecimal(10);
-
-
-                                LedgerD? newCur = newG.Trans.Find(x => x.Id == oldD.Id);
-                                newG.Trans.RemoveAll(x => x.Id == oldD.Id);
-
-                                if (newCur != null)
-                                {
-                                    if (newCur.isDeleted)
-                                    {
-                                        varSql = $"DELETE FROM tbl_Ledger WHERE TType='{newG.TType}' AND VocNo={newG.VocNo} AND Id={newCur.Id}";
-                                        varSqls.Add(varSql);
-                                    }
-                                    else
-                                    {
-                                        if (newG.CashAc != oldM.CashAc) varSql += $"CashAc={newG.CashAc},";
-                                        if (newG.Date != oldM.Date) varSql += $"[Date]='{newG.Date.ToString("yyyy-MM-dd")}',";
-                                        if (newCur.SrNo != i) varSql += $"SrNo={i++},";
-                                        //                                    if (newCur.SrNo != oldD.SrNo) varSql += $"SrNo={newCur.SrNo},";
-                                        if (newCur.PartyId != oldD.PartyId) varSql += $"PartyId={newCur.PartyId},";
-                                        if (newCur.Description != oldD.Description) varSql += $"Description='{newCur.Description}',";
-                                        if (newCur.NetDebit == null)
-                                            varSql += $"NetDebit=NULL,";
-                                        else
-                                            varSql += $"NetDebit={newCur.NetDebit},";
-                                        if (newCur.NetCredit != oldD.NetCredit)
-                                            if (newCur.NetCredit == null)
-                                                varSql += $"NetCredit=NULL,";
-                                            else
-                                                varSql += $"NetCredit={newCur.NetCredit},";
-
-                                        if (varSql.Length > 0)
-                                            varSqls.Add($"UPDATE tbl_Ledger SET {varSql.Substring(0, varSql.Length - 1)} WHERE id ={ oldD.Id }");
-                                    }
-                                }
-                            }
+                            oldM.CashAc = myReader.IsDBNull(0) ? null : myReader.GetInt32(0);
+                            oldM.TType = myReader.GetString(1);
+                            oldM.VocNo = myReader.GetInt32(2);
+                            oldM.Date = myReader.GetDateTime(3);
                         }
-                        foreach (var nd in newG.Trans)
+
+                        oldD.Id = myReader.GetInt32(4); //id
+                        oldD.SrNo = myReader.GetInt32(5); //srno
+                        oldD.PartyId = myReader.GetInt32(6); //partyid
+                        oldD.PartyName = myReader.GetString(7); //partyname
+                        oldD.Description = myReader.IsDBNull(8) ? null : myReader.GetString(8); //description
+                        oldD.NetDebit = myReader.IsDBNull(9) ? null : (Int64)myReader.GetDecimal(9);
+                        oldD.NetCredit = myReader.IsDBNull(10) ? null : (Int64)myReader.GetDecimal(10);
+
+
+                        LedgerD? newCur = newG.Trans.Find(x => x.Id == oldD.Id);
+                        newG.Trans.RemoveAll(x => x.Id == oldD.Id);
+
+                        if (newCur != null)
                         {
-                            if (nd.isDeleted == false)
+                            if (newCur.isDeleted)
                             {
-                                dr = nd.NetDebit == null ? "NULL" : nd.NetDebit.ToString();
-                                cr = nd.NetCredit == null ? "NULL" : nd.NetCredit.ToString();
-                                cashAc = newG.CashAc == null ? "null" : newG.CashAc.ToString();
-
-                                varSql = @"INSERT INTO dbo.tbl_Ledger" +
-                                    " (TType, VocNo, Date, SrNo, PartyId, Description, NetDebit,NetCredit, cashAc) VALUES";
-                                varSql += $"('{newG.TType}',{newG.VocNo},'{newG.Date.ToString("yyyy-MM-dd")}',{i++},{nd.PartyId},'{nd.Description}',{dr},{cr},{cashAc})";
-
+                                varSql = $"DELETE FROM tbl_Ledger WHERE TType='{newG.TType}' AND VocNo={newG.VocNo} AND Id={newCur.Id}";
                                 varSqls.Add(varSql);
                             }
+                            else
+                            {
+                                if (newG.CashAc != oldM.CashAc) varSql += $"CashAc={newG.CashAc},";
+                                if (newG.Date != oldM.Date) varSql += $"[Date]='{newG.Date.ToString("yyyy-MM-dd")}',";
+                                if (newCur.SrNo != i) varSql += $"SrNo={i++},";
+                                //                                    if (newCur.SrNo != oldD.SrNo) varSql += $"SrNo={newCur.SrNo},";
+                                if (newCur.PartyId != oldD.PartyId) varSql += $"PartyId={newCur.PartyId},";
+                                if (newCur.Description != oldD.Description) varSql += $"Description='{newCur.Description}',";
+                                if (newCur.NetDebit == null)
+                                    varSql += $"NetDebit=NULL,";
+                                else
+                                    varSql += $"NetDebit={newCur.NetDebit},";
+                                if (newCur.NetCredit != oldD.NetCredit)
+                                    if (newCur.NetCredit == null)
+                                        varSql += $"NetCredit=NULL,";
+                                    else
+                                        varSql += $"NetCredit={newCur.NetCredit},";
+
+                                if (varSql.Length > 0)
+                                    varSqls.Add($"UPDATE tbl_Ledger SET {varSql.Substring(0, varSql.Length - 1)} WHERE id ={ oldD.Id }");
+                            }
                         }
-                        myReader.Close();
-                        myCon.Close();
                     }
                 }
+                foreach (var nd in newG.Trans)
+                {
+                    if (nd.isDeleted == false)
+                    {
+                        dr = nd.NetDebit == null ? "NULL" : nd.NetDebit.ToString();
+                        cr = nd.NetCredit == null ? "NULL" : nd.NetCredit.ToString();
+                        cashAc = newG.CashAc == null ? "null" : newG.CashAc.ToString();
+
+                        varSql = @"INSERT INTO dbo.tbl_Ledger" +
+                            " (TType, VocNo, Date, SrNo, PartyId, Description, NetDebit,NetCredit, cashAc) VALUES";
+                        varSql += $"('{newG.TType}',{newG.VocNo},'{newG.Date.ToString("yyyy-MM-dd")}',{i++},{nd.PartyId},'{nd.Description}',{dr},{cr},{cashAc})";
+
+                        varSqls.Add(varSql);
+                    }
+                }
+
                 if (varSqls.Count == 0)
                     return new JsonResult($"Already Updated");
 
+                string sqlDataSource = _configuration.GetConnectionString("EmployeeAppCon");
                 using (SqlConnection myCon = new(sqlDataSource))
                 {
                     myCon.Open();
@@ -344,7 +295,7 @@ namespace WebAPI.Controllers
 
                 }
 
-                mTable = GetData(newG.TType, newG.VocNo);
+                mTable = await GetData(newG.TType, newG.VocNo);
                 return new JsonResult(mTable);
             }
             catch (Exception ex)

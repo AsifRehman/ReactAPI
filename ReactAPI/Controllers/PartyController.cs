@@ -12,6 +12,7 @@ using System.IO;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Cors;
 using System.Net;
+using WebAPI.Helpers;
 
 namespace WebAPI.Controllers
 {
@@ -21,58 +22,35 @@ namespace WebAPI.Controllers
     {
         private readonly IConfiguration _configuration;
         private readonly IWebHostEnvironment _env;
+        private readonly SqlHelper h;
 
         public PartyController(IConfiguration configuration, IWebHostEnvironment env)
         {
             _configuration = configuration;
             _env = env;
+            h = new(_configuration);
         }
 
         [HttpGet("cashlist")]
-        public JsonResult CashList()
+        public async Task<JsonResult> CashList()
         {
             string query = @"
                     select PartyNameId as PartyId, PartyName from dbo.tbl_Party WHERE PartyTypeID=24501 ORDER BY PartyName";
             DataTable table = new();
-            string sqlDataSource = _configuration.GetConnectionString("EmployeeAppCon");
-            SqlDataReader myReader;
-            using (SqlConnection myCon = new(sqlDataSource))
-            {
-                myCon.Open();
-                using (SqlCommand myCommand = new(query, myCon))
-                {
-                    myReader = myCommand.ExecuteReader();
-                    table.Load(myReader); ;
 
-                    myReader.Close();
-                    myCon.Close();
-                }
-            }
+            table.Load(await h.GetReaderBySQL(query));
 
             return new JsonResult(table);
         }
 
         [HttpGet("partieslist")]
-        public JsonResult PartiesList()
+        public async Task<JsonResult> PartiesList()
         {
             string query = @"
                     select PartyNameId as PartyId, PartyName from dbo.tbl_Party ORDER BY PartyName";
             DataTable table = new();
-            string sqlDataSource = _configuration.GetConnectionString("EmployeeAppCon");
-            SqlDataReader myReader;
-            using (SqlConnection myCon = new(sqlDataSource))
-            {
-                myCon.Open();
-                using (SqlCommand myCommand = new(query, myCon))
-                {
-                    myReader = myCommand.ExecuteReader();
-                    table.Load(myReader); ;
-
-                    myReader.Close();
-                    myCon.Close();
-                }
-            }
-
+            table.Load(await h.GetReaderBySQL(query));
+            
             return new JsonResult(table);
         }
 
