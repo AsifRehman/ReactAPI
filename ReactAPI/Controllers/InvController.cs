@@ -13,7 +13,7 @@ namespace WebAPI.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class LedgerController : ControllerBase
+public class InvController : ControllerBase
 {
     DataTable mTable = new();
     DataTable dTable = new();
@@ -23,7 +23,7 @@ public class LedgerController : ControllerBase
 
     private string mainQuery = @"SELECT g.cashAc, g.TType, g.VocNo, g.Date, g.id, g.SrNo, g.PartyID, p.PartyName, g.Description, g.NetDebit, g.NetCredit FROM dbo.tbl_Ledger g INNER JOIN tbl_Party p ON p.PartyNameID = g.PartyID WHERE g.VocNo=searchVocNo AND g.TType='searchTType' ORDER BY SrNo";
 
-    public LedgerController(IConfiguration configuration)
+    public InvController(IConfiguration configuration)
     {
         h = new(configuration);
         _configuration = configuration;

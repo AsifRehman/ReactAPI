@@ -13,92 +13,91 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Cors;
 using System.Net;
 
-namespace WebAPI.Controllers
+namespace WebAPI.Controllers;
+
+[Route("api/[controller]")]
+[ApiController]
+public class FirmController : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class FirmController : ControllerBase
+    private readonly IConfiguration _configuration;
+    private readonly IWebHostEnvironment _env;
+
+    public FirmController(IConfiguration configuration, IWebHostEnvironment env)
     {
-        private readonly IConfiguration _configuration;
-        private readonly IWebHostEnvironment _env;
+        _configuration = configuration;
+        _env = env;
+    }
 
-        public FirmController(IConfiguration configuration, IWebHostEnvironment env)
-        {
-            _configuration = configuration;
-            _env = env;
-        }
-
-        [HttpGet("firmlist")]
-        public JsonResult FirmList()
-        {
-            string query = @"
+    [HttpGet("firmlist")]
+    public JsonResult FirmList()
+    {
+        string query = @"
                     select Id FirmId, [Name] as FirmName, 'asif.pro@gmail.com' Email, '0333993386' phone, 'st#3' Address from dbo.Firm";
-            DataTable table = new();
-            string sqlDataSource = _configuration.GetConnectionString("EmployeeAppCon");
-            SqlDataReader myReader;
-            using (SqlConnection myCon = new(sqlDataSource))
+        DataTable table = new();
+        string sqlDataSource = _configuration.GetConnectionString("EmployeeAppCon");
+        SqlDataReader myReader;
+        using (SqlConnection myCon = new(sqlDataSource))
+        {
+            myCon.Open();
+            using (SqlCommand myCommand = new(query, myCon))
             {
-                myCon.Open();
-                using (SqlCommand myCommand = new(query, myCon))
-                {
-                    myReader = myCommand.ExecuteReader();
-                    table.Load(myReader); ;
+                myReader = myCommand.ExecuteReader();
+                table.Load(myReader); ;
 
-                    myReader.Close();
-                    myCon.Close();
-                }
+                myReader.Close();
+                myCon.Close();
             }
-
-            return new JsonResult(table);
         }
 
-        [HttpGet("{id}")]
-        public JsonResult Get(int id)
-        {
-            string query = $@"
+        return new JsonResult(table);
+    }
+
+    [HttpGet("{id}")]
+    public JsonResult Get(int id)
+    {
+        string query = $@"
                     select Id FirmId, [Name] as FirmName, 'asif.pro@gmail.com' Email, '0333993386' phone, 'st#3' Address from dbo.Firm WHERE id={id}";
-            DataTable table = new();
-            string sqlDataSource = _configuration.GetConnectionString("EmployeeAppCon");
-            SqlDataReader myReader;
-            using (SqlConnection myCon = new(sqlDataSource))
+        DataTable table = new();
+        string sqlDataSource = _configuration.GetConnectionString("EmployeeAppCon");
+        SqlDataReader myReader;
+        using (SqlConnection myCon = new(sqlDataSource))
+        {
+            myCon.Open();
+            using (SqlCommand myCommand = new(query, myCon))
             {
-                myCon.Open();
-                using (SqlCommand myCommand = new(query, myCon))
-                {
-                    myReader = myCommand.ExecuteReader();
-                    table.Load(myReader); ;
+                myReader = myCommand.ExecuteReader();
+                table.Load(myReader); ;
 
-                    myReader.Close();
-                    myCon.Close();
-                }
+                myReader.Close();
+                myCon.Close();
             }
-
-            return new JsonResult(table);
         }
 
-        [HttpGet]
-        public JsonResult Get()
-        {
-            string query = @"
+        return new JsonResult(table);
+    }
+
+    [HttpGet]
+    public JsonResult Get()
+    {
+        string query = @"
                     select Id FirmId, [Name] as FirmName, 'asif.pro@gmail.com' Email, '0333993386' phone, 'st#3' Address from dbo.Firm WHERE id=1
                     ";
-            DataTable table = new();
-            string sqlDataSource = _configuration.GetConnectionString("EmployeeAppCon");
-            SqlDataReader myReader;
-            using (SqlConnection myCon = new(sqlDataSource))
+        DataTable table = new();
+        string sqlDataSource = _configuration.GetConnectionString("EmployeeAppCon");
+        SqlDataReader myReader;
+        using (SqlConnection myCon = new(sqlDataSource))
+        {
+            myCon.Open();
+            using (SqlCommand myCommand = new(query, myCon))
             {
-                myCon.Open();
-                using (SqlCommand myCommand = new(query, myCon))
-                {
-                    myReader = myCommand.ExecuteReader();
-                    table.Load(myReader); ;
+                myReader = myCommand.ExecuteReader();
+                table.Load(myReader); ;
 
-                    myReader.Close();
-                    myCon.Close();
-                }
+                myReader.Close();
+                myCon.Close();
             }
-
-            return new JsonResult(table);
         }
+
+        return new JsonResult(table);
     }
 }
