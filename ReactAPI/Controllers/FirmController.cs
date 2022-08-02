@@ -12,6 +12,7 @@ using System.IO;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Cors;
 using System.Net;
+using Microsoft.AspNetCore.Authorization;
 
 namespace WebAPI.Controllers;
 
@@ -27,7 +28,7 @@ public class FirmController : ControllerBase
         _configuration = configuration;
         _env = env;
     }
-
+    [Authorize]
     [HttpGet("firmlist")]
     public JsonResult FirmList()
     {
